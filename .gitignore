@@ -9,10 +9,6 @@ __pycache__/
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Carpetas de datos / bases de datos locales
-data/
-chroma_db/
-
 # Archivos de sistema
 .DS_Store
 EOF
