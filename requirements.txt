@@ -1,6 +1,11 @@
 langchain
 langchain-community
-PyPDF2
+pypdf
 python-dotenv
 tiktoken
 transformers
+huggingface-hub
+chromadb
+sentence-transformers
+torch
+pandas
