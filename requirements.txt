@@ -1,0 +1,6 @@
+langchain
+langchain-community
+PyPDF2
+python-dotenv
+tiktoken
+transformers
