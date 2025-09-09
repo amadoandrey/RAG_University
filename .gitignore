@@ -1,14 +1,72 @@
-# Entornos virtuales
-venv/
-.venv/
-
-# Cachés de Python
+# ====================================================
+# Python
+# ====================================================
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
 
-# Jupyter checkpoints
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos de build/distribución
+build/
+dist/
+
+# ====================================================
+# Configuración / secretos
+# ====================================================
+.env
+*.local
+secrets.toml
+.streamlit/
+
+# ====================================================
+# Datos y bases de datos (RAG / Embeddings / VectorStores)
+# ====================================================
+data/
+datasets/
+chroma/
+vectorstore/
+db/
+*.sqlite3
+*.db
+*.parquet
+*.csv
+*.tsv
+*.jsonl
+
+# Resultados y logs
+outputs/
+logs/
+*.log
+
+# ====================================================
+# Notebooks / cachés de Jupyter
+# ====================================================
 .ipynb_checkpoints/
+*.ipynb_convert/
+profile_default/
+__pycache__/
 
-# Archivos de sistema
+# ====================================================
+# Archivos del sistema operativo / IDE
+# ====================================================
 .DS_Store
-EOF
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ====================================================
+# Archivos de pruebas y cobertura
+# ====================================================
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.mypy_cache/
