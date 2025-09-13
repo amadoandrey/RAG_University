@@ -1,72 +1,67 @@
-# ====================================================
-# Python
-# ====================================================
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-*.egg
-
-# Entornos virtuales
-.venv/
-venv/
-env/
-
-# Archivos de build/distribución
-build/
-dist/
-
-# ====================================================
-# Configuración / secretos
-# ====================================================
-.env
-*.local
-secrets.toml
-.streamlit/
-
-# ====================================================
-# Datos y bases de datos (RAG / Embeddings / VectorStores)
-# ====================================================
-data/
-datasets/
-chroma/
-vectorstore/
-db/
-*.sqlite3
-*.db
-*.parquet
-*.csv
-*.tsv
-*.jsonl
-
-# Resultados y logs
-outputs/
-logs/
-*.log
-
-# ====================================================
-# Notebooks / cachés de Jupyter
-# ====================================================
-.ipynb_checkpoints/
-*.ipynb_convert/
-profile_default/
-__pycache__/
-
-# ====================================================
-# Archivos del sistema operativo / IDE
-# ====================================================
+# ======================
+# Archivos de sistema
+# ======================
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-*.swp
 
-# ====================================================
-# Archivos de pruebas y cobertura
-# ====================================================
-.coverage
+# ======================
+# Archivos de Python
+# ======================
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# ======================
+# Entornos virtuales
+# ======================
+.env
+.venv
+env/
+venv/
+*.env
+*.venv
+
+# ======================
+# Jupyter / Colab
+# ======================
+.ipynb_checkpoints/
+*.ipynb.json
+.colab/
+*.bak
+
+# ======================
+# Datos sensibles / grandes
+# ======================
+data/BD/              # Base vectorial persistida
+data/reference/*.csv  # Archivos de referencia de métricas (si contienen datos privados)
+*.pdf                 # PDFs institucionales
+*.docx
+*.xlsx
+
+# ======================
+# Logs / temporales
+# ======================
+*.log
+*.tmp
+*.swp
+*.out
+*.bak
+
+# ======================
+# Cache de librerías
+# ======================
+pip-wheel-metadata/
+__pypackages__/
 .pytest_cache/
-htmlcov/
-.tox/
-.mypy_cache/
+.streamlit/
+
+# ======================
+# Archivos locales de Colab/Drive
+# ======================
+/content/
+/mnt/
+/drive/

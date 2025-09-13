@@ -1,0 +1,11 @@
+streamlit
+langchain
+langchain-community
+langchain-huggingface
+transformers
+torch
+sentence-transformers
+chromadb
+nltk
+rouge-score
+pandas
