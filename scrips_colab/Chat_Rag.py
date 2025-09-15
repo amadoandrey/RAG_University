@@ -97,6 +97,14 @@ hf_token = "hf_XXXXXX"  # Si lo necesitas, pon tu token de HuggingFace
 login(token=hf_token)
 
 def load_embeddings():
+    """
+    Carga el modelo de embeddings de HuggingFace para transformar texto en vectores.
+
+    Returns:
+        HuggingFaceEmbeddings: Objeto que convierte texto en representaciones vectoriales,
+                               utilizando el modelo definido en `model_name`.
+    """
+
     return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"}
@@ -104,6 +112,15 @@ def load_embeddings():
 
 @st.cache_resource
 def get_vectordb(PERSIST_DIR):
+    """
+    Recupera o crea la base de datos vectorial a partir de documentos almacenados.
+
+    Args:
+        PERSIST_DIR (str): Ruta en la que se encuentra la base vectorial.
+
+    Returns:
+        Chroma: Objeto de tipo base de datos vectorial con embeddings cargados.
+    """
     embeddings = load_embeddings()
     return Chroma(
         persist_directory=f"{PERSIST_DIR}",
@@ -116,6 +133,13 @@ model = None
 
 @lru_cache(maxsize=1)
 def load_tokenizer():
+    """
+    Carga y devuelve el tokenizador del modelo de lenguaje definido en `model_name`.
+
+    Returns:
+        AutoTokenizer: Tokenizador compatible con el modelo de HuggingFace.
+    """
+
     global tokenizer
     if tokenizer is None:
         print("🔄 Cargando tokenizer...")
@@ -127,6 +151,12 @@ def load_tokenizer():
 
 @lru_cache(maxsize=1)
 def load_model():
+    """
+    Carga y devuelve el modelo de lenguaje definido en `model_name`.
+
+    Returns:
+        AutoModelForCausalLM: Modelo de lenguaje preentrenado listo para generación de texto.
+    """
     global model
     if model is None:
         print("🔄 Cargando modelo...")
@@ -142,6 +172,12 @@ def load_model():
     return model
 
 def create_text_pipeline():
+    """
+    Crea el pipeline de generación de texto que conecta el modelo con el tokenizador.
+
+    Returns:
+        pipeline: Pipeline de HuggingFace configurado para tareas de generación de texto.
+    """
     print("🔄 Creando pipeline de generación de texto...")
     tokenizer = load_tokenizer()
     model = load_model()
@@ -177,27 +213,46 @@ prompt_template = PromptTemplate(
 status = st.empty()
 status.info("Cargando base vectorial y modelo de lenguaje...")
 
+# Carga la base de datos vectorial persistente desde la ruta definida en PERSIST_DIR.
+# Esta base contiene los embeddings de los documentos previamente cargados.
 vectordb = get_vectordb(PERSIST_DIR)
+
+
+# Se define el "retriever", que es el componente encargado de buscar
+# los fragmentos más relevantes dentro de la base vectorial
+# cuando el usuario hace una pregunta.
 retriever = vectordb.as_retriever(
-    search_type="mmr",
+    search_type="mmr",  # Método de búsqueda: "Maximal Marginal Relevance",
+                        # equilibra diversidad y relevancia en los resultados.
     search_kwargs={
-        "k": 8,
-        "fetch_k": 20,
-        "lambda_mult": 0.7
+        "k": 8,          # Número final de fragmentos relevantes a devolver.
+        "fetch_k": 20,   # Número inicial de candidatos a considerar antes de filtrar.
+        "lambda_mult": 0.7  # Factor que controla el balance entre diversidad (0) y relevancia (1).
     }
 )
 
 
-
+# --- Integración del modelo de lenguaje con LangChain ---
+# 1. Se crea el pipeline de generación de texto usando la función `create_text_pipeline()`,
+#    el cual ya conecta modelo y tokenizador de HuggingFace.
+# 2. Luego, se envuelve ese pipeline dentro de `HuggingFacePipeline`,
+#    para que sea compatible con LangChain y pueda ser usado en la cadena RAG.
 pipeline_ = create_text_pipeline()
 llm = HuggingFacePipeline(pipeline=pipeline_)
 
+# --- Configuración de la memoria de la conversación ---
+# Se utiliza `ConversationBufferMemory` para almacenar el historial del chat.
+# Esto permite que el modelo recuerde las preguntas y respuestas anteriores,
+# manteniendo coherencia en diálogos largos.
 qa_memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True,
-        output_key="result" # Esto le dice a la memoria qué clave es la respuesta principal
-    )
+    memory_key="chat_history",  # Nombre de la variable donde se guardará el historial.
+    return_messages=True,       # Indica que la memoria devolverá los mensajes completos (no solo texto plano).
+    output_key="result"         # Especifica la clave que identifica la respuesta principal dentro de la memoria.
+)
 
+# --- Configuración del motor RAG ---
+# Se crea un objeto `RetrievalQA`, que combina el modelo de lenguaje (LLM)
+# con el recuperador de la base vectorial para responder preguntas en español.
 qa = RetrievalQA.from_chain_type(
     llm=llm,  # Modelo de lenguaje (LLM) que genera las respuestas a partir del contexto proporcionado.
     chain_type="stuff",  # Tipo de cadena que concatena todos los documentos recuperados en un solo texto para el modelo.
@@ -212,7 +267,14 @@ qa = RetrievalQA.from_chain_type(
 
 def process_llm_response(llm_response):
     """
-    Procesa la respuesta del modelo de lenguaje para extraer y formatear la respuesta relevante.
+    Procesa la respuesta cruda generada por el modelo de lenguaje.
+
+    Args:
+        llm_response (dict): Respuesta completa del modelo, se espera la clave 'result'.
+
+    Returns:
+        str: Texto de la respuesta limpio y legible para el usuario.
+             Si no hay respuesta válida, devuelve un mensaje de advertencia.
     """
     new_response = llm_response.get('result', "").strip()  # ✅ Evita errores si 'result' no existe
 
@@ -240,9 +302,13 @@ def process_llm_response(llm_response):
 
 def obtener_respuesta_desde_respuesta_tag(texto_completo):
     """
-    Extrae el contenido que sigue después de la palabra 'Respuesta:'.
-    Si no se encuentra, devuelve el texto original.
-    Al final añade una pregunta para mantener el flujo conversacional.
+    Extrae la respuesta a partir de la etiqueta 'Respuesta:' en el texto.
+
+    Args:
+        texto_completo (str): Texto completo generado por el modelo.
+
+    Returns:
+        str: Respuesta limpia y con un mensaje adicional para seguir el flujo de conversación.
     """
     clave = "Respuesta:"
     indice = texto_completo.find(clave)
@@ -361,6 +427,13 @@ if st.session_state['historial']:
 
 @st.cache_data
 def cargar_respuestas_referencia():
+    """
+    Carga las respuestas de referencia desde un archivo CSV.
+
+    Returns:
+        DataFrame: Contiene preguntas y sus respuestas de referencia.
+                   Si ocurre un error, retorna un DataFrame vacío con las columnas esperadas.
+    """
     try:
         df = pd.read_csv(REFERENCE_FILE)
         df.dropna(subset=["pregunta", "respuesta_referencia"], inplace=True)
@@ -370,6 +443,17 @@ def cargar_respuestas_referencia():
         return pd.DataFrame(columns=["pregunta", "respuesta_referencia"])
 
 def evaluar_respuesta(pregunta, respuesta_generada):
+    """
+    Evalúa la calidad de una respuesta generada comparándola con una respuesta de referencia.
+
+    Args:
+        pregunta (str): Pregunta realizada por el usuario.
+        respuesta_generada (str): Respuesta producida por el modelo.
+
+    Returns:
+        dict | None: Diccionario con métricas BLEU, ROUGE-L y METEOR, además de la respuesta esperada.
+                     Retorna None si no hay referencia para la pregunta.
+    """
     df_ref = cargar_respuestas_referencia()
     # Usar la columna "respuesta_referencia"
     respuesta_esperada = df_ref[df_ref.pregunta.str.lower() == pregunta.lower()].respuesta_referencia.values
@@ -392,6 +476,15 @@ def evaluar_respuesta(pregunta, respuesta_generada):
     }
 
 def limpiar_respuesta(respuesta):
+    """
+    Elimina el texto auxiliar agregado al final de la respuesta generada.
+
+    Args:
+        respuesta (str): Texto completo de la respuesta.
+
+    Returns:
+        str: Respuesta limpia sin mensajes adicionales.
+    """
     texto_remover = "Acá estoy para ayudarte. Digita la siguiente pregunta."
     if respuesta.strip().endswith(texto_remover):
         return respuesta.strip()[:-len(texto_remover)].strip()

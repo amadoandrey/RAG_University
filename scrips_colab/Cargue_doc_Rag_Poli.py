@@ -38,6 +38,12 @@ fragmentacion_opcion = st.radio(
     ["Fragmentación por longitud (chunks)", "Fragmentación por estructura (título, artículo, sección)"]
 )
 
+# --- Parámetros de fragmentación por longitud ---
+# Si se elige esta opción, el usuario define:
+# - chunk_size: tamaño máximo de cada fragmento (500 a 2000, por defecto 1200).
+# - chunk_overlap: cantidad de solapamiento entre fragmentos (0 a 500, por defecto 200).
+# Estos valores determinan cómo se corta el texto para optimizar la búsqueda semántica.
+
 chunk_size = 1200
 chunk_overlap = 200
 if fragmentacion_opcion == "Fragmentación por longitud (chunks)":
@@ -46,6 +52,18 @@ if fragmentacion_opcion == "Fragmentación por longitud (chunks)":
 
 # --- Función de fragmentación por estructura general ---
 def split_texts_general(documents):
+    """
+    Divide los documentos en fragmentos basados en su estructura (Título, Capítulo, Sección, Artículo).
+
+    Args:
+        documents (list[Document]): Lista de documentos cargados, 
+                                    cada uno con texto y metadatos.
+
+    Returns:
+        list[Document]: Una lista de fragmentos de texto extraídos.  
+                        Cada fragmento conserva los metadatos del documento original 
+                        (como nombre del archivo o número de página).
+    """
     all_chunks = []
     pattern = (
         r"((?:T[ÍI]TULO|CAP[ÍI]TULO|SECCI[ÓO]N|ART[ÍI]CULO)\s+[\w\d\-]+[\s\S]*?)"
